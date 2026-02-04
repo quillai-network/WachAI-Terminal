@@ -1,0 +1,52 @@
+{
+  "name": "wachai",
+  "version": "0.0.1",
+  "description": "WachAI mandates CLI",
+  "license": "MIT",
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "wachai",
+    "mandates",
+    "cli",
+    "evm",
+    "ethers"
+  ],
+  "bin": {
+    "wachai": "bin/wachai.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/cli.ts --format cjs --target node18 --platform node --sourcemap --clean --external @xmtp/node-sdk",
+    "dev": "node dist/cli.js --help",
+    "smoke": "bash scripts/smoke-test.sh",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@quillai-network/mandates-core": "^0.1.0",
+    "@xmtp/node-sdk": "^5.3.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "commander": "^12.1.0",
+    "ethers": "^6.13.5",
+    "ulid": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "tsup": "^8.0.2",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
+
+
