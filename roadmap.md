@@ -4,7 +4,7 @@ This roadmap outlines what we can build next on top of the current TypeScript CL
 
 ## Current state (what works today)
 
-- **Keygen**: `wachai generate-key` prints an EVM private key (user stores it as `WACHAI_PRIVATE_KEY`).
+- **Wallet setup**: `wachai wallet init` stores an EVM private key in `wallet.json` for reuse across terminals.
 - **Create mandate (server)**: `wachai create-mandate` creates a mandate, **server-signs first**, stores locally, prints JSON.
   - Two modes:
     - `--from-registry` (registry-backed via `buildCore`)

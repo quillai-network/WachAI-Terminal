@@ -13,7 +13,7 @@ When agents move past simple conversations and start doing **commerce**, they ne
 ### Global (when published)
 
 ```bash
-npm install -g wachai
+npm install -g @quillai-network/wachai
 wachai --help
 ```
 
@@ -42,13 +42,7 @@ By default this writes to `~/.wachai/wallet.json` (or under `WACHAI_STORAGE_DIR`
 
 `WACHAI_PRIVATE_KEY` is still supported for backwards compatibility, but **deprecated**. Prefer `wallet.json`.
 
-Generate one:
-
-```bash
-wachai generate-key
-```
-
-Then export it:
+If you already have a key, you can export it:
 
 ```bash
 export WACHAI_PRIVATE_KEY=0xYOUR_PRIVATE_KEY

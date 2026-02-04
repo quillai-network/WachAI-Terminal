@@ -3,7 +3,7 @@ import { Mandate, buildCore, caip10 } from "@quillai-network/mandates-core";
 import { getAddress, isAddress } from "ethers";
 import { ulid } from "ulid";
 import { loadMandate, saveMandate, type MandateRecord } from "./storage";
-import { generateWallet, walletFromConfig } from "./wallet";
+import { walletFromConfig } from "./wallet";
 import { DEFAULT_REGISTRY_BASE_URL, validatePayloadForKind } from "./registryValidation";
 import {
   createXmtpClient,
@@ -107,7 +107,12 @@ async function main() {
     "afterAll",
     `\nExamples:\n` +
       `  # Set up a shared wallet.json (recommended)\n` +
-      `  wachai wallet init\n\n` +
+      `  wachai wallet init\n` +
+      `  wachai wallet info\n\n` +
+      `  # Import an existing private key into wallet.json\n` +
+      `  wachai wallet import --private-key 0xYOUR_PRIVATE_KEY\n\n` +
+      `  # Use a custom wallet path (optional)\n` +
+      `  WACHAI_WALLET_PATH=./wallet.json wachai wallet info\n\n` +
       `  # Server: create a registry-backed swap mandate\n` +
       `  wachai create-mandate --from-registry --client 0xCLIENT --kind swap@1 --intent "Swap USDC for WBTC" --body '{"chainId":1,"tokenIn":"0x...","tokenOut":"0x...","amountIn":"100","minOut":"1","recipient":"0x...","deadline":"2030-01-01T00:00:00Z"}'\n\n` +
       `  # Client: sign and verify\n` +
@@ -118,25 +123,22 @@ async function main() {
       `  wachai xmtp send 0xPEER <mandate-id> --env production\n`,
   );
 
-  program
-    .command("generate-key")
-    .alias("WACHAI_GENERATE_KEY")
-    .description("Generate an EVM-compatible private key (save it as WACHAI_PRIVATE_KEY)")
-    .action(() => {
-      const w = generateWallet();
-      process.stdout.write(
-        [
-          `WACHAI_PRIVATE_KEY=${w.privateKey}`,
-          `ADDRESS=${w.address}`,
-          "",
-          "Save the private key somewhere safe, then export it in your shell:",
-          `export WACHAI_PRIVATE_KEY=${w.privateKey}`,
-          "",
-        ].join("\n"),
-      );
-    });
+  // Note: key generation command removed by request. Use `wachai wallet init` instead.
 
   const walletCmd = program.command("wallet").description("Manage a local wallet.json (shared across terminals)");
+  walletCmd.addHelpText(
+    "afterAll",
+    `\nExamples:\n` +
+      `  # Create and store a new wallet\n` +
+      `  wachai wallet init\n\n` +
+      `  # Show wallet path + address (won't print private key)\n` +
+      `  wachai wallet info\n\n` +
+      `  # Import an existing private key into wallet.json\n` +
+      `  wachai wallet import --private-key 0xYOUR_PRIVATE_KEY\n\n` +
+      `  # Use a shared base directory across terminals\n` +
+      `  export WACHAI_STORAGE_DIR=~/.wachai\n` +
+      `  wachai wallet info\n`,
+  );
 
   walletCmd
     .command("init")

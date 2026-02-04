@@ -81,7 +81,7 @@ wachai verify <mandate-id>
 Uninstall the global install:
 
 ```bash
-npm rm -g wachai
+npm rm -g @quillai-network/wachai
 ```
 
 
