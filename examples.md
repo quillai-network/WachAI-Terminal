@@ -45,6 +45,12 @@ wachai create-mandate \
 
 Copy the returned `mandateId`, then sign as the **client**:
 
+Print it first if you want to inspect what you’re about to sign:
+
+```bash
+wachai print <mandate-id>
+```
+
 ```bash
 wachai sign <mandate-id>
 ```

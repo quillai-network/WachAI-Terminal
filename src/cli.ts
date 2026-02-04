@@ -46,6 +46,35 @@ function mandateToRecord(m: any): MandateRecord {
   throw new Error("Unexpected Mandate object; cannot serialize");
 }
 
+function sampleMandateRecord(): MandateRecord {
+  return {
+    mandateId: "01J9X9A3T3DMD3M3CYAJW1Y0SZ",
+    version: "0.1.0",
+    // CAIP-10: "<namespace>:<reference>:<address>" (here: eip155:1:<address>)
+    client: "eip155:1:0x1111111111111111111111111111111111111111",
+    server: "eip155:1:0x2222222222222222222222222222222222222222",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    deadline: "2030-01-01T00:00:00.000Z",
+    intent: "Swap 100 USDC for WBTC",
+    core: {
+      kind: "swap@1",
+      payload: {
+        chainId: 1,
+        tokenIn: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        tokenOut: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+        amountIn: "100000000",
+        minOut: "165000",
+        recipient: "0x1111111111111111111111111111111111111111",
+        deadline: "2030-01-01T00:00:00.000Z",
+      },
+    },
+    signatures: {
+      server: "<server_signature>",
+      client: "<client_signature>",
+    },
+  };
+}
+
 async function createSwapMandateFromRegistry(opts: {
   kind: string;
   chainId: number;
@@ -316,6 +345,45 @@ async function main() {
       await saveMandate(updated);
 
       process.stdout.write(JSON.stringify(updated, null, 2) + "\n");
+    });
+
+  program
+    .command("print")
+    .alias("inspect")
+    .description("Print a stored mandate by ID (raw JSON)")
+    .argument("<mandate-id>", "Mandate ID")
+    .addHelpText(
+      "afterAll",
+      `\nExamples:\n` +
+        `  wachai print <mandate-id>\n` +
+        `  wachai print sample\n`,
+    )
+    .action(async (mandateId: string) => {
+      if (mandateId === "sample") {
+        const sample = sampleMandateRecord();
+        process.stdout.write(
+          [
+            "Sample mandate (annotated)",
+            "",
+            "- mandateId: unique ID used for storage/sharing",
+            "- version: mandate format/protocol version",
+            "- client/server: who is agreeing (CAIP-10 addresses)",
+            "- createdAt: when the mandate was created",
+            "- deadline: when the mandate expires (no longer valid after this time)",
+            "- intent: human-readable summary of what the mandate means",
+            "- core.kind: the primitive/task type (e.g. swap@1)",
+            "- core.payload: primitive-defined parameters (validated in --from-registry mode)",
+            "- signatures: server offer signature + client acceptance signature (both required for approval)",
+            "",
+            "Sample JSON:",
+            JSON.stringify(sample, null, 2),
+            "",
+          ].join("\n"),
+        );
+        return;
+      }
+      const record = await loadMandate(mandateId);
+      process.stdout.write(JSON.stringify(record, null, 2) + "\n");
     });
 
   program

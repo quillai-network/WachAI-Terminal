@@ -139,6 +139,12 @@ When it receives a `wachai.mandate` envelope, it:
 - saves the mandate to local storage (by `mandateId`)
 - prints a small JSON receipt (including the `mandateId`)
 
+To inspect what you received:
+
+```bash
+wachai print <mandate-id>
+```
+
 If you want to “process then exit” instead of streaming forever:
 
 ```bash

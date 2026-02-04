@@ -105,6 +105,20 @@ The signer is the **client role** (signs second):
 wachai sign <mandate-id>
 ```
 
+### Print/inspect a mandate
+
+Before signing or verifying, you can print the raw stored mandate JSON:
+
+```bash
+wachai print <mandate-id>
+```
+
+To learn the mandate shape + what fields mean:
+
+```bash
+wachai print sample
+```
+
 ### Verify mandate
 
 Verifies both signatures (exit code `0` only if both are valid):
