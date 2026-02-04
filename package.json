@@ -1,5 +1,5 @@
 {
-  "name": "wachai",
+  "name": "@quillai-network/wachai",
   "version": "0.0.1",
   "description": "WachAI mandates CLI",
   "license": "MIT",
