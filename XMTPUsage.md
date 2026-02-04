@@ -40,7 +40,7 @@ wachai verify <mandate-id>
 ## Requirements
 
 - **Node 20+**
-- **`WACHAI_PRIVATE_KEY`** set in each agent’s environment
+- A wallet configured via **`wachai wallet init`** (recommended) or legacy `WACHAI_PRIVATE_KEY` (deprecated)
 - XMTP V3 uses **Inbox IDs** under the hood; a peer must have an inbox before you can DM them.
 
 ## Storage
@@ -79,14 +79,14 @@ In two terminals (or two machines):
 
 ```bash
 # SERVER
-wachai generate-key
-export WACHAI_PRIVATE_KEY=0xSERVER_PRIVATE_KEY
+wachai wallet init
+wachai wallet info
 ```
 
 ```bash
 # CLIENT
-wachai generate-key
-export WACHAI_PRIVATE_KEY=0xCLIENT_PRIVATE_KEY
+wachai wallet init
+wachai wallet info
 ```
 
 ### 1) Client: create/ensure XMTP inbox (important)
@@ -97,7 +97,6 @@ Run:
 
 ```bash
 # CLIENT
-export WACHAI_PRIVATE_KEY=0xCLIENT_PRIVATE_KEY
 wachai xmtp receive --env production
 ```
 
@@ -109,8 +108,6 @@ Create a registry-backed `swap@1` mandate (server signs first):
 
 ```bash
 # SERVER
-export WACHAI_PRIVATE_KEY=0xSERVER_PRIVATE_KEY
-
 wachai create-mandate \
   --from-registry \
   --client 0xCLIENT_ADDRESS \
@@ -152,7 +149,6 @@ wachai xmtp receive --env production --once
 
 ```bash
 # CLIENT
-export WACHAI_PRIVATE_KEY=0xCLIENT_PRIVATE_KEY
 wachai sign <mandate-id>
 ```
 

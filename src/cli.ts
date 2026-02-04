@@ -3,7 +3,7 @@ import { Mandate, buildCore, caip10 } from "@quillai-network/mandates-core";
 import { getAddress, isAddress } from "ethers";
 import { ulid } from "ulid";
 import { loadMandate, saveMandate, type MandateRecord } from "./storage";
-import { generateWallet, walletFromEnv } from "./wallet";
+import { generateWallet, walletFromConfig } from "./wallet";
 import { DEFAULT_REGISTRY_BASE_URL, validatePayloadForKind } from "./registryValidation";
 import {
   createXmtpClient,
@@ -14,6 +14,13 @@ import {
   type MandateEnvelope,
   type XmtpEnv,
 } from "./xmtpTransport";
+import {
+  createAndStoreWallet,
+  defaultWalletPath,
+  ensureWalletPermissions,
+  importAndStorePrivateKey,
+  loadWalletFile,
+} from "./walletStore";
 
 function requireAddress(name: string, value: string) {
   if (!isAddress(value)) throw new Error(`Invalid ${name} address: ${value}`);
@@ -70,17 +77,46 @@ async function createSwapMandateFromRegistry(opts: {
 async function main() {
   const program = new Command();
 
-  const intro = `WachAI Mandates are signed, verifiable agreements between a server and a client.\n` +
+  const banner = String.raw`
+ /$$      /$$                     /$$        /$$$$$$  /$$$$$$       /$$$$$$$$                                /$$                     /$$
+| $$  /$ | $$                    | $$       /$$__  $$|_  $$_/      |__  $$__/                               |__/                    | $$
+| $$ /$$$| $$  /$$$$$$   /$$$$$$$| $$$$$$$ | $$  \ $$  | $$           | $$  /$$$$$$   /$$$$$$  /$$$$$$/$$$$  /$$ /$$$$$$$   /$$$$$$ | $$
+| $$/$$ $$ $$ |____  $$ /$$_____/| $$__  $$| $$$$$$$$  | $$           | $$ /$$__  $$ /$$__  $$| $$_  $$_  $$| $$| $$__  $$ |____  $$| $$
+| $$$$_  $$$$  /$$$$$$$| $$      | $$  \ $$| $$__  $$  | $$           | $$| $$$$$$$$| $$  \__/| $$ \ $$ \ $$| $$| $$  \ $$  /$$$$$$$| $$
+| $$$/ \  $$$ /$$__  $$| $$      | $$  | $$| $$  | $$  | $$           | $$| $$_____/| $$      | $$ | $$ | $$| $$| $$  | $$ /$$__  $$| $$
+| $$/   \  $$|  $$$$$$$|  $$$$$$$| $$  | $$| $$  | $$ /$$$$$$         | $$|  $$$$$$$| $$      | $$ | $$ | $$| $$| $$  | $$|  $$$$$$$| $$
+|__/     \__/ \_______/ \_______/|__/  |__/|__/  |__/|______/         |__/ \_______/|__/      |__/ |__/ |__/|__/|__/  |__/ \_______/|__/
+                                                                                                                                        
+                                                                                                                                                                                                                                                                             
+`;
+
+  const intro =
+    `WachAI Mandates are signed, verifiable agreements between a server and a client.\n` +
     `- The server creates the mandate (offer) and signs first\n` +
     `- The client signs second (accept)\n` +
-    `This CLI stores mandates locally so you can sign/verify by mandateId.\n`;
+    `This CLI stores mandates locally so you can sign/verify by mandateId.\n` +
+    `Repo: https://github.com/quillai-network/WachAI-Terminal\n`;
 
   program
     .name("wachai")
     .description("WachAI mandates CLI")
     .version("0.0.1");
 
-  program.addHelpText("beforeAll", `${intro}\n`);
+  program.addHelpText("beforeAll", `${banner}\n${intro}\n`);
+  program.addHelpText(
+    "afterAll",
+    `\nExamples:\n` +
+      `  # Set up a shared wallet.json (recommended)\n` +
+      `  wachai wallet init\n\n` +
+      `  # Server: create a registry-backed swap mandate\n` +
+      `  wachai create-mandate --from-registry --client 0xCLIENT --kind swap@1 --intent "Swap USDC for WBTC" --body '{"chainId":1,"tokenIn":"0x...","tokenOut":"0x...","amountIn":"100","minOut":"1","recipient":"0x...","deadline":"2030-01-01T00:00:00Z"}'\n\n` +
+      `  # Client: sign and verify\n` +
+      `  wachai sign <mandate-id>\n` +
+      `  wachai verify <mandate-id>\n\n` +
+      `  # XMTP: receive in one terminal; send from another\n` +
+      `  wachai xmtp receive --env production\n` +
+      `  wachai xmtp send 0xPEER <mandate-id> --env production\n`,
+  );
 
   program
     .command("generate-key")
@@ -100,6 +136,60 @@ async function main() {
       );
     });
 
+  const walletCmd = program.command("wallet").description("Manage a local wallet.json (shared across terminals)");
+
+  walletCmd
+    .command("init")
+    .description("Create a new wallet and store it at the default wallet.json path")
+    .action(async () => {
+      const p = defaultWalletPath();
+      const res = await createAndStoreWallet(p);
+      process.stdout.write(
+        JSON.stringify(
+          {
+            ok: true,
+            walletPath: res.path,
+            address: res.wallet.address,
+            note: "Private key stored in wallet.json. Keep this file safe (chmod 600).",
+          },
+          null,
+          2,
+        ) + "\n",
+      );
+    });
+
+  walletCmd
+    .command("import")
+    .description("Store an existing private key into wallet.json")
+    .requiredOption("--private-key <pk>", "EVM private key (0x...)")
+    .action(async (options) => {
+      const p = defaultWalletPath();
+      const res = await importAndStorePrivateKey(String(options.privateKey), p);
+      process.stdout.write(
+        JSON.stringify(
+          { ok: true, walletPath: res.path, address: res.wallet.address },
+          null,
+          2,
+        ) + "\n",
+      );
+    });
+
+  walletCmd
+    .command("info")
+    .description("Show wallet path + address (does not print the private key)")
+    .action(async () => {
+      const p = defaultWalletPath();
+      const wf = await loadWalletFile(p);
+      const perms = await ensureWalletPermissions(p);
+      process.stdout.write(
+        JSON.stringify(
+          { ok: true, walletPath: p, address: wf.address, permissions: perms ?? undefined },
+          null,
+          2,
+        ) + "\n",
+      );
+    });
+
   program
     .command("create-mandate")
     .description("Create (and server-sign) a mandate as the server; stores it locally for later signing/verification")
@@ -116,8 +206,16 @@ async function main() {
     .option("--intent <text>", "Human readable intent (optional)")
     .option("--registry-base-url <url>", "Override primitives registry base URL")
     .requiredOption("--body <json>", "JSON payload body. Example: '{\"chainId\":1,...}'")
+    .addHelpText(
+      "afterAll",
+      `\nExamples:\n` +
+        `  # Registry-backed (validates kind + payload schema)\n` +
+        `  wachai create-mandate --from-registry --client 0xCLIENT --kind swap@1 --intent "Swap USDC for WBTC" --body '{"chainId":1,"tokenIn":"0x...","tokenOut":"0x...","amountIn":"100","minOut":"1","recipient":"0x...","deadline":"2030-01-01T00:00:00Z"}'\n\n` +
+        `  # Custom (no registry lookup)\n` +
+        `  wachai create-mandate --custom --client 0xCLIENT --kind content --intent "Any intent" --body '{"any":"json"}'\n`,
+    )
     .action(async (options) => {
-      const serverWallet = walletFromEnv();
+      const serverWallet = await walletFromConfig();
       const chainId = Number(options.chainId);
       if (!Number.isFinite(chainId) || chainId <= 0) throw new Error("Invalid --chain-id");
 
@@ -206,7 +304,7 @@ async function main() {
     .description("Sign a mandate as the client (requires WACHAI_PRIVATE_KEY)")
     .argument("<mandate-id>", "Mandate ID")
     .action(async (mandateId: string) => {
-      const clientWallet = walletFromEnv();
+      const clientWallet = await walletFromConfig();
       const record = await loadMandate(mandateId);
       const m = new Mandate(record as any);
 
@@ -234,6 +332,14 @@ async function main() {
     });
 
   const xmtp = program.command("xmtp").description("Send/receive mandates over XMTP");
+  xmtp.addHelpText(
+    "afterAll",
+    `\nExamples:\n` +
+      `  # Keep inbox open (receiver)\n` +
+      `  wachai xmtp receive --env production\n\n` +
+      `  # Send a stored mandate to a peer address (sender)\n` +
+      `  wachai xmtp send 0xPEER <mandate-id> --env production\n`,
+  );
 
   xmtp
     .command("send")
@@ -242,11 +348,17 @@ async function main() {
     .argument("<mandate-id>", "Mandate ID (must exist in local storage)")
     .option("--env <env>", "XMTP env: production|dev|local (default: production)", "production")
     .option("--action <action>", "Envelope action: offer|accept|reject|counter (default: inferred)")
+    .addHelpText(
+      "afterAll",
+      `\nExamples:\n` +
+        `  wachai xmtp send 0xPEER <mandate-id> --env production\n` +
+        `  wachai xmtp send 0xPEER <mandate-id> --action accept --env production\n`,
+    )
     .action(async (peerAddress: string, mandateId: string, options) => {
       const env = String(options.env) as XmtpEnv;
       const peer = normalizePeerAddress(peerAddress);
 
-      const senderWallet = walletFromEnv();
+      const senderWallet = await walletFromConfig();
       const client = await createXmtpClient({ wallet: senderWallet as any, env });
 
       const record = await loadMandate(mandateId);
@@ -276,9 +388,15 @@ async function main() {
     .description("Stream incoming XMTP messages; saves received mandates to local storage")
     .option("--env <env>", "XMTP env: production|dev|local (default: production)", "production")
     .option("--once", "Process currently available messages then exit (no streaming)", false)
+    .addHelpText(
+      "afterAll",
+      `\nExamples:\n` +
+        `  wachai xmtp receive --env production\n` +
+        `  wachai xmtp receive --env production --once\n`,
+    )
     .action(async (options) => {
       const env = String(options.env) as XmtpEnv;
-      const receiverWallet = walletFromEnv();
+      const receiverWallet = await walletFromConfig();
       const client = await createXmtpClient({ wallet: receiverWallet as any, env });
 
       const handleMessage = async (msg: any) => {

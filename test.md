@@ -40,15 +40,15 @@ Generate two keys (server + client) and export them in two shells (or copy/paste
 **Server (creates + signs first):**
 
 ```bash
-wachai generate-key
-export WACHAI_PRIVATE_KEY=0xSERVER_PRIVATE_KEY
+wachai wallet init
+wachai wallet info
 ```
 
 **Client (signs second):**
 
 ```bash
-wachai generate-key
-export WACHAI_PRIVATE_KEY=0xCLIENT_PRIVATE_KEY
+wachai wallet init
+wachai wallet info
 ```
 
 Create a mandate as the server (custom mode), including an `--intent`:

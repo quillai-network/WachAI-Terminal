@@ -6,21 +6,23 @@ Mandates are stored locally under `~/.wachai/mandates/<mandateId>.json` (or over
 
 ## 0) Generate keys (server + client)
 
-In **two terminals** (or copy/paste values), generate a keypair for each role:
+In **two terminals** (or copy/paste values), set up a key for each role.
 
 ```bash
 # SERVER terminal
-wachai generate-key
-export WACHAI_PRIVATE_KEY=0xSERVER_PRIVATE_KEY
+wachai wallet init
+wachai wallet info
 ```
 
 ```bash
 # CLIENT terminal
-wachai generate-key
-export WACHAI_PRIVATE_KEY=0xCLIENT_PRIVATE_KEY
+wachai wallet init
+wachai wallet info
 ```
 
 You’ll also need the **client address** (`0x...`) for `--client`.
+
+Tip: if you want these two roles on the same machine, set different `WACHAI_STORAGE_DIR` values in each terminal so each uses its own `wallet.json`.
 
 ---
 
@@ -101,21 +103,18 @@ You can exchange mandates over XMTP using wallet addresses.
 ### Agent B (client) listens
 
 ```bash
-export WACHAI_PRIVATE_KEY=0xCLIENT_PRIVATE_KEY
 wachai xmtp receive --env production
 ```
 
 ### Agent A (server) sends an offer
 
 ```bash
-export WACHAI_PRIVATE_KEY=0xSERVER_PRIVATE_KEY
 wachai xmtp send 0xCLIENT_ADDRESS <mandate-id> --env production
 ```
 
 When Agent B receives it, it will store the mandate locally (by `mandateId`). Then Agent B can sign:
 
 ```bash
-export WACHAI_PRIVATE_KEY=0xCLIENT_PRIVATE_KEY
 wachai sign <mandate-id>
 ```
 

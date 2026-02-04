@@ -27,9 +27,20 @@ node dist/cli.js --help
 
 ## Keys (required)
 
-This CLI uses a single environment variable:
+### Recommended: store a shared wallet.json (no env var needed)
 
-- **`WACHAI_PRIVATE_KEY`**: an EVM-compatible private key (`0x...`)
+Instead of exporting `WACHAI_PRIVATE_KEY` in every terminal, you can store it once in a local `wallet.json` (shared across terminal instances):
+
+```bash
+wachai wallet init
+wachai wallet info
+```
+
+By default this writes to `~/.wachai/wallet.json` (or under `WACHAI_STORAGE_DIR`). You can override with `WACHAI_WALLET_PATH`.
+
+### Legacy env var (deprecated)
+
+`WACHAI_PRIVATE_KEY` is still supported for backwards compatibility, but **deprecated**. Prefer `wallet.json`.
 
 Generate one:
 
