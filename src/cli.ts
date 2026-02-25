@@ -21,6 +21,7 @@ import {
   importAndStorePrivateKey,
   loadWalletFile,
 } from "./walletStore";
+import { getFullBanner, getFooter, colors, supportsColor } from "./ascii";
 
 function requireAddress(name: string, value: string) {
   if (!isAddress(value)) throw new Error(`Invalid ${name} address: ${value}`);
@@ -106,32 +107,24 @@ async function createSwapMandateFromRegistry(opts: {
 async function main() {
   const program = new Command();
 
-  const banner = String.raw`
- /$$      /$$                     /$$        /$$$$$$  /$$$$$$       /$$$$$$$$                                /$$                     /$$
-| $$  /$ | $$                    | $$       /$$__  $$|_  $$_/      |__  $$__/                               |__/                    | $$
-| $$ /$$$| $$  /$$$$$$   /$$$$$$$| $$$$$$$ | $$  \ $$  | $$           | $$  /$$$$$$   /$$$$$$  /$$$$$$/$$$$  /$$ /$$$$$$$   /$$$$$$ | $$
-| $$/$$ $$ $$ |____  $$ /$$_____/| $$__  $$| $$$$$$$$  | $$           | $$ /$$__  $$ /$$__  $$| $$_  $$_  $$| $$| $$__  $$ |____  $$| $$
-| $$$$_  $$$$  /$$$$$$$| $$      | $$  \ $$| $$__  $$  | $$           | $$| $$$$$$$$| $$  \__/| $$ \ $$ \ $$| $$| $$  \ $$  /$$$$$$$| $$
-| $$$/ \  $$$ /$$__  $$| $$      | $$  | $$| $$  | $$  | $$           | $$| $$_____/| $$      | $$ | $$ | $$| $$| $$  | $$ /$$__  $$| $$
-| $$/   \  $$|  $$$$$$$|  $$$$$$$| $$  | $$| $$  | $$ /$$$$$$         | $$|  $$$$$$$| $$      | $$ | $$ | $$| $$| $$  | $$|  $$$$$$$| $$
-|__/     \__/ \_______/ \_______/|__/  |__/|__/  |__/|______/         |__/ \_______/|__/      |__/ |__/ |__/|__/|__/  |__/ \_______/|__/
-                                                                                                                                        
-                                                                                                                                                                                                                                                                             
-`;
+  // Get colorful ASCII art banner
+  const banner = getFullBanner();
 
+  const c = supportsColor() ? colors : { reset: "", dim: "", cyan: "", yellow: "", green: "" };
   const intro =
-    `WachAI Mandates are signed, verifiable agreements between a server and a client.\n` +
-    `- The server creates the mandate (offer) and signs first\n` +
-    `- The client signs second (accept)\n` +
-    `This CLI stores mandates locally so you can sign/verify by mandateId.\n` +
-    `Repo: https://github.com/quillai-network/WachAI-Terminal\n`;
+    `\n${c.cyan}WachAI Mandates${c.reset} are signed, verifiable agreements between a server and a client.\n\n` +
+    `${c.yellow}•${c.reset} The server creates the mandate (offer) and signs first\n` +
+    `${c.yellow}•${c.reset} The client signs second (accept)\n` +
+    `${c.yellow}•${c.reset} This CLI stores mandates locally so you can sign/verify by mandateId\n\n` +
+    `${c.dim}Repo: https://github.com/quillai-network/WachAI-Terminal${c.reset}\n`;
 
   program
     .name("wachai")
     .description("WachAI mandates CLI")
-    .version("0.0.1");
+    .version("0.0.3");
 
   program.addHelpText("beforeAll", `${banner}\n${intro}\n`);
+  program.addHelpText("after", `\n${getFooter()}`);
   program.addHelpText(
     "afterAll",
     `\nExamples:\n` +
